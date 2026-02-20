@@ -6,10 +6,9 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from core.exceptions import AgentExecutionError
-from core.llm import get_llm
+from core.llm import call_llm
 from core.logging import get_logger
 from mcp.client import MCPClient
-from prompts.agent_base import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from rag.base_retriever import BaseRetriever
 from state import GraphState
 
@@ -21,15 +20,23 @@ class AgentExecutor:
 
     def __init__(
         self,
+        system_prompt: str,
+        user_prompt_template: str,
         retrievers: list[BaseRetriever] | None = None,
         mcp_client: MCPClient | None = None,
         tools: list[str] | None = None,
     ) -> None:
+        self._system_prompt = system_prompt
+        self._user_prompt_template = user_prompt_template
         self._retrievers = retrievers or []
         self._mcp_client = mcp_client
         self._tools = tools or []
 
-    def execute(self, state: GraphState) -> GraphState:
+    def execute(
+        self,
+        state: GraphState,
+        extra_prompt_vars: dict[str, Any] | None = None,
+    ) -> GraphState:
         """RAG 조회 → MCP tool 호출 → LLM 호출 순서로 실행한다."""
         messages = state.get("messages", [])
         last_message = messages[-1] if messages else None
@@ -44,7 +51,7 @@ class AgentExecutor:
         try:
             context_items = self._run_retrieval(user_input, context_items)
             tool_results = self._run_tools(user_input)
-            agent_output = self._run_llm(user_input, context_items, tool_results)
+            agent_output = self._run_llm(user_input, context_items, tool_results, extra_prompt_vars)
         except AgentExecutionError:
             raise
         except Exception as exc:
@@ -113,6 +120,7 @@ class AgentExecutor:
         user_input: str,
         context_items: list[str],
         tool_results: list[dict[str, Any]],
+        extra_prompt_vars: dict[str, Any] | None = None,
     ) -> str:
         """수집된 컨텍스트와 tool 결과를 바탕으로 LLM 호출을 수행한다."""
         context_text = "\n".join(context_items) if context_items else "없음"
@@ -121,9 +129,9 @@ class AgentExecutor:
                 str(r) for r in tool_results
             )
 
-        llm = get_llm()
-        response = llm.invoke([
-            SystemMessage(content=SYSTEM_PROMPT.format(context=context_text)),
-            HumanMessage(content=USER_PROMPT_TEMPLATE.format(user_input=user_input)),
+        extra = extra_prompt_vars or {}
+        response = call_llm([
+            SystemMessage(content=self._system_prompt.format(context=context_text, **extra)),
+            HumanMessage(content=self._user_prompt_template.format(user_input=user_input, **extra)),
         ])
         return response.content

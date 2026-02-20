@@ -6,6 +6,7 @@ from mcp.client import MCPClient
 from mcp.tools.search_tool import SearchTool
 from nodes.agents.base_agent import BaseAgent
 from nodes.agents.executor import AgentExecutor
+from prompts.agents.agent_a_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from rag.iflow_retriever import IflowRetriever
 from state import GraphState
 
@@ -21,6 +22,8 @@ class AgentA(BaseAgent):
         mcp_client.register_tool(SearchTool())
 
         self._executor = AgentExecutor(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt_template=USER_PROMPT_TEMPLATE,
             retrievers=[IflowRetriever()],
             mcp_client=mcp_client,
             tools=["search"],

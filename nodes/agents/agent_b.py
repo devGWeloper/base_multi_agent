@@ -6,6 +6,7 @@ from mcp.client import MCPClient
 from mcp.tools.summary_tool import SummaryTool
 from nodes.agents.base_agent import BaseAgent
 from nodes.agents.executor import AgentExecutor
+from prompts.agents.agent_b_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from rag.xxx_retriever import XxxRetriever
 from state import GraphState
 
@@ -21,6 +22,8 @@ class AgentB(BaseAgent):
         mcp_client.register_tool(SummaryTool())
 
         self._executor = AgentExecutor(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt_template=USER_PROMPT_TEMPLATE,
             retrievers=[XxxRetriever()],
             mcp_client=mcp_client,
             tools=["summary"],

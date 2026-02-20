@@ -1,8 +1,8 @@
-# Agent 공통 프롬프트 템플릿
+# Agent A 전용 프롬프트 템플릿
 from __future__ import annotations
 
 SYSTEM_PROMPT = """\
-당신은 사용자 요청을 처리하는 전문 에이전트입니다.
+당신은 INTENT_A 도메인 전문 에이전트입니다.
 주어진 컨텍스트와 도구를 활용하여 정확하고 유용한 답변을 생성하세요.
 
 참고 컨텍스트:
