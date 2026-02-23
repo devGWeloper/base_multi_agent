@@ -18,7 +18,7 @@ uv run pytest src/workflows/v1_0/tests/unit/test_router.py
 uv run pytest src/workflows/v1_0/tests/unit/test_router.py::test_function_name
 
 # Run local interactive mode
-uv run python main.py
+uv run python app.py
 ```
 
 ## Architecture
@@ -31,7 +31,7 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 
 **State** (`src/workflows/v1_0/state.py`): `GraphState` TypedDict with `messages` (accumulated via `operator.add`), `intent`, `agent_output`, `context`, `metadata`, `error`.
 
-**Graph** (`src/workflows/v1_0/workflow.py`): Assembles and compiles the `StateGraph`. This is the GAIA platform entry point — `graph` is a module-level instance. `main.py` is for local interactive testing only.
+**Graph** (`src/workflows/v1_0/workflow.py`): Assembles and compiles the `StateGraph`. This is the GAIA platform entry point — `graph` is a module-level instance. `app.py` is for local interactive testing only.
 
 **Nodes** (`src/workflows/v1_0/nodes/`):
 - `intent_classifier.py` — LLM classifies intent; on failure sets `state["error"]` and continues (graceful degradation to unknown_handler)
@@ -61,7 +61,7 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 ## Key Patterns
 
 - **Error as state**: Classification failures set `state["error"]`; graph continues gracefully to unknown_handler
-- **Logging**: `@log_node_execution` decorator (from `core/logging.py`) instruments node entry/exit, elapsed time, and exceptions with `intent` + `session_id`
-- **LLM singleton**: `core/llm.py` `get_llm()` is `@lru_cache`; settings come from `config/settings.py` (also cached)
+- **Logging**: `@log_node_execution` decorator (from `src/core/logging.py`) instruments node entry/exit, elapsed time, and exceptions with `intent` + `session_id`
+- **LLM singleton**: `src/core/llm.py` `get_llm()` is `@lru_cache`; settings come from `config/settings.py` (also cached)
 - **Config**: All environment variables loaded via `pydantic-settings` from `.env`. See `.env.example` for required keys (`OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `MILVUS_URI`, etc.)
-- **Custom exceptions** (`core/exceptions.py`): All inherit `MultiAgentBaseError`; support `cause` (wrapped exception) and `context` (dict) fields
+- **Custom exceptions** (`src/core/exceptions.py`): All inherit `MultiAgentBaseError`; support `cause` (wrapped exception) and `context` (dict) fields
