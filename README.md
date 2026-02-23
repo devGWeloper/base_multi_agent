@@ -115,10 +115,10 @@ GAIA 플랫폼은 **특정 버전 폴더 안의 `workflow.py`만 읽어서 실�
 이 파일들은 "공유 인프라"가 아니라 **해당 버전의 Agent/RAG/Tool 인터페이스 정의**다.
 `v1_1`에서 `BaseAgent`의 인터페이스가 바뀌거나 `executor.py`가 ReAct 패턴으로 교체되어도 `v1_0`은 영향받지 않아야 하므로 각 버전 폴더 안에 둔다.
 
-#### 4. `prompts/` — 노드 코드와 분리
+#### 4. `prompt/` — 노드 코드와 분리
 
 프롬프트는 LLM 튜닝 과정에서 가장 자주 바뀌는 영역이다.
-노드 로직(`nodes/`)과 분리해 두면, 프롬프트만 수정할 때 실행 코드를 건드릴 필요가 없다.
+노드 로직(`node/`)과 분리해 두면, 프롬프트만 수정할 때 실행 코드를 건드릴 필요가 없다.
 
 #### 레이어 간 의존 방향
 
@@ -188,7 +188,7 @@ class GraphState(TypedDict):
 | `intents.py` | `Intent` enum 정의. 여기에 값을 추가해야 새 intent가 시스템에 인식됨 |
 | `settings.py` | `pydantic-settings` 기반 환경변수 로딩. `@lru_cache` 싱글턴. `.env`에서 값을 읽음 |
 
-#### `nodes/` — LangGraph 노드 함수
+#### `node/` — LangGraph 노드 함수
 
 | 파일 | 함수 | 역할 |
 |------|------|------|
@@ -197,32 +197,32 @@ class GraphState(TypedDict):
 | `unknown_handler.py` | `handle_unknown(state)` | `UNKNOWN` intent 처리. `state["error"]` 있으면 시스템 오류 메시지, 없으면 미매칭 안내 메시지 |
 | `final_response.py` | `generate_final_response(state)` | `agent_output` + `context`를 종합해 LLM으로 사용자에게 전달할 최종 응답 생성 |
 
-#### `nodes/base_agent.py`, `nodes/executor.py` — 이 버전의 Agent 기반 코드
+#### `node/base_agent.py`, `node/executor.py` — 이 버전의 Agent 기반 코드
 
 | 파일 | 클래스/함수 | 역할 |
 |------|------------|------|
 | `base_agent.py` | `BaseAgent(ABC)` | **이 버전의** Agent 인터페이스 정의. `run(state) → state` 추상 메서드만 선언. 버전 간 인터페이스가 달라질 수 있으므로 `src/core/`가 아닌 버전 폴더에 위치 |
 | `executor.py` | `AgentExecutor` | **이 버전의** 공통 실행 엔진. 생성 시 retriever 목록, MCP client, tool 이름 목록을 주입받아 `execute(state)`에서 RAG → Tool → LLM 순서로 실행. 마찬가지로 버전 폴더에 위치 |
 
-#### `nodes/agents/` — 도메인 Agent 구현체만
+#### `node/domain/` — 도메인 Agent 구현체만
 
 이 폴더의 역할은 단 하나: **도메인별 Agent 파일을 추가하는 곳**.
-`base_agent.py`와 `executor.py`는 한 레벨 위(`nodes/`)에 있으므로, 이 폴더에는 비즈니스 로직 Agent만 존재한다.
+`base_agent.py`와 `executor.py`는 한 레벨 위(`node/`)에 있으므로, 이 폴더에는 비즈니스 로직 Agent만 존재한다.
 
 | 파일 | 클래스/함수 | 역할 |
 |------|------------|------|
 | `agent_a.py` | `AgentA` / `agent_a_node` | Domain Agent A 구현체. `_get_agent()` lazy singleton 패턴으로 최초 호출 시 1회만 초기화. `agent_a_node`가 실제 LangGraph 노드 함수 |
 | `agent_b.py` | `AgentB` / `agent_b_node` | Domain Agent B (구조 동일) |
 
-#### `prompts/` — LLM 프롬프트 상수
+#### `prompt/` — LLM 프롬프트 상수
 
 | 파일 | 내용 |
 |------|------|
 | `intent_classifier_prompt.py` | Intent 분류용 system/user 프롬프트 템플릿 |
 | `unknown_handler_prompt.py` | Unknown 처리용 프롬프트 |
 | `final_response_prompt.py` | 최종 응답 생성용 프롬프트 |
-| `agents/agent_a_prompt.py` | Agent A 전용 system/user 프롬프트 (`{context}`, `{user_input}` 변수 포함) |
-| `agents/agent_b_prompt.py` | Agent B 전용 프롬프트 |
+| `agent/agent_a_prompt.py` | Agent A 전용 system/user 프롬프트 (`{context}`, `{user_input}` 변수 포함) |
+| `agent/agent_b_prompt.py` | Agent B 전용 프롬프트 |
 
 #### `rag/` — RAG 검색 레이어
 
@@ -238,11 +238,11 @@ class GraphState(TypedDict):
 | 파일 | 클래스 | 역할 |
 |------|--------|------|
 | `client.py` | `MCPClient` | Tool 등록(`register_tool`), 조회(`get_tool`), 호출(`call_tool`) 관리. 호출 실패는 `MCPToolError`로 래핑 |
-| `tools/base_tool.py` | `BaseTool(ABC)` | Tool 인터페이스 정의. `name`, `description`, `args_schema` property + `call(args) → dict` 추상 메서드 |
-| `tools/search_tool.py` | `SearchTool` | 검색 tool 구현체 (현재 stub) |
-| `tools/summary_tool.py` | `SummaryTool` | 요약 tool 구현체 (현재 stub) |
+| `tool/base_tool.py` | `BaseTool(ABC)` | Tool 인터페이스 정의. `name`, `description`, `args_schema` property + `call(args) → dict` 추상 메서드 |
+| `tool/search_tool.py` | `SearchTool` | 검색 tool 구현체 (현재 stub) |
+| `tool/summary_tool.py` | `SummaryTool` | 요약 tool 구현체 (현재 stub) |
 
-#### `tests/`
+#### `test/`
 
 | 경로 | 내용 |
 |------|------|
@@ -265,10 +265,10 @@ class GraphState(TypedDict):
 | `src/core/exceptions.py` | 예외 계층은 고정. 새 예외가 필요하면 기존 클래스를 상속 |
 | `src/core/llm.py` | LLM 클라이언트 관리 로직. 모델 변경은 `.env`로 |
 | `src/core/logging.py` | 로깅 인프라. 모든 노드에서 동일하게 사용 |
-| `src/workflows/v1_0/nodes/base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
-| `src/workflows/v1_0/nodes/executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
+| `src/workflows/v1_0/node/base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
+| `src/workflows/v1_0/node/executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
 | `src/workflows/v1_0/rag/base_retriever.py` | Retriever 인터페이스. 변경 시 모든 Retriever에 영향 |
-| `src/workflows/v1_0/mcp/tools/base_tool.py` | Tool 인터페이스. 변경 시 모든 Tool에 영향 |
+| `src/workflows/v1_0/mcp/tool/base_tool.py` | Tool 인터페이스. 변경 시 모든 Tool에 영향 |
 | `src/workflows/v1_0/mcp/client.py` | Tool 등록/호출 관리. 기능 추가가 아닌 한 수정 불필요 |
 | `app.py` | 로컬 테스트 진입점. 구조 변경 불필요 |
 
@@ -288,10 +288,10 @@ class GraphState(TypedDict):
 
 | 파일 | 할 일 |
 |------|-------|
-| `src/workflows/v1_0/prompts/intent_classifier_prompt.py` | 도메인 컨텍스트를 반영한 분류 프롬프트 작성 |
-| `src/workflows/v1_0/prompts/agents/agent_a_prompt.py` | Agent A의 역할과 출력 형식 정의 |
-| `src/workflows/v1_0/prompts/agents/agent_b_prompt.py` | Agent B의 역할과 출력 형식 정의 |
-| `src/workflows/v1_0/prompts/final_response_prompt.py` | 최종 응답 톤·형식 정의 |
+| `src/workflows/v1_0/prompt/intent_classifier_prompt.py` | 도메인 컨텍스트를 반영한 분류 프롬프트 작성 |
+| `src/workflows/v1_0/prompt/agent/agent_a_prompt.py` | Agent A의 역할과 출력 형식 정의 |
+| `src/workflows/v1_0/prompt/agent/agent_b_prompt.py` | Agent B의 역할과 출력 형식 정의 |
+| `src/workflows/v1_0/prompt/final_response_prompt.py` | 최종 응답 톤·형식 정의 |
 
 #### 3단계: RAG 구현
 
@@ -304,15 +304,15 @@ class GraphState(TypedDict):
 
 | 파일 | 할 일 |
 |------|-------|
-| `src/workflows/v1_0/mcp/tools/search_tool.py` | `call(args)` 메서드에 실제 검색 API 연동 |
-| `src/workflows/v1_0/mcp/tools/summary_tool.py` | `call(args)` 메서드에 실제 요약 로직 연동 |
+| `src/workflows/v1_0/mcp/tool/search_tool.py` | `call(args)` 메서드에 실제 검색 API 연동 |
+| `src/workflows/v1_0/mcp/tool/summary_tool.py` | `call(args)` 메서드에 실제 요약 로직 연동 |
 
 #### 5단계: Agent 조합 결정
 
 | 파일 | 할 일 |
 |------|-------|
-| `src/workflows/v1_0/nodes/agents/agent_a.py` | `AgentExecutor`에 Agent A가 사용할 retriever/tool 조합 주입 |
-| `src/workflows/v1_0/nodes/agents/agent_b.py` | `AgentExecutor`에 Agent B가 사용할 retriever/tool 조합 주입 |
+| `src/workflows/v1_0/node/domain/agent_a.py` | `AgentExecutor`에 Agent A가 사용할 retriever/tool 조합 주입 |
+| `src/workflows/v1_0/node/domain/agent_b.py` | `AgentExecutor`에 Agent B가 사용할 retriever/tool 조합 주입 |
 
 ---
 
@@ -322,7 +322,7 @@ class GraphState(TypedDict):
 |------|----------|
 | `src/workflows/v1_0/workflow.py` | 새 Agent 노드를 추가하거나 그래프 구조를 변경할 때 |
 | `src/workflows/v1_0/state.py` | `GraphState`에 새 필드가 필요할 때 |
-| `src/workflows/v1_0/nodes/router.py` | 새 intent 추가로 라우팅 매핑이 늘어날 때 |
+| `src/workflows/v1_0/node/router.py` | 새 intent 추가로 라우팅 매핑이 늘어날 때 |
 
 ---
 
@@ -333,7 +333,7 @@ class GraphState(TypedDict):
 ```python
 # 패키지 전체 경로가 아닌 flat import
 from core.exceptions import AgentExecutionError    # src/core/exceptions.py
-from nodes.executor import AgentExecutor            # src/workflows/v1_0/nodes/executor.py
+from node.executor import AgentExecutor            # src/workflows/v1_0/node/executor.py
 from config.intents import Intent                  # src/workflows/v1_0/config/intents.py
 ```
 
@@ -342,7 +342,7 @@ from config.intents import Intent                  # src/workflows/v1_0/config/i
 | 경로 | 역할 |
 |------|------|
 | `src/` | `from core.xxx` 가 `src/core/xxx.py`를 찾도록 |
-| `src/workflows/v1_0/` | `from nodes.xxx`, `from config.xxx` 등이 동작하도록 |
+| `src/workflows/v1_0/` | `from node.xxx`, `from config.xxx` 등이 동작하도록 |
 
 | 실행 방식 | 경로 등록 방법 |
 |----------|--------------|
@@ -356,19 +356,19 @@ from config.intents import Intent                  # src/workflows/v1_0/config/i
 
 ```bash
 # 전체 테스트
-uv run pytest src/workflows/v1_0/tests/
+uv run pytest src/workflows/v1_0/test/
 
 # 단위 테스트만
-uv run pytest src/workflows/v1_0/tests/unit/
+uv run pytest src/workflows/v1_0/test/unit/
 
 # 통합 테스트만
-uv run pytest src/workflows/v1_0/tests/integration/
+uv run pytest src/workflows/v1_0/test/integration/
 
 # 특정 파일
-uv run pytest src/workflows/v1_0/tests/unit/test_router.py
+uv run pytest src/workflows/v1_0/test/unit/test_router.py
 
 # 특정 함수
-uv run pytest src/workflows/v1_0/tests/unit/test_router.py::test_function_name
+uv run pytest src/workflows/v1_0/test/unit/test_router.py::test_function_name
 ```
 
 ---
@@ -389,11 +389,11 @@ class Intent(str, Enum):
     UNKNOWN  = "UNKNOWN"
 ```
 
-**Step 2.** `nodes/agents/agent_c.py` 생성
+**Step 2.** `node/domain/agent_c.py` 생성
 
 ```python
-from nodes.base_agent import BaseAgent
-from nodes.executor import AgentExecutor
+from node.base_agent import BaseAgent
+from node.executor import AgentExecutor
 from core.logging import log_node_execution
 from state import GraphState
 
@@ -423,7 +423,7 @@ def agent_c_node(state: GraphState) -> GraphState:
     return _get_agent().run(state)
 ```
 
-**Step 3.** `nodes/router.py` — 매핑 추가
+**Step 3.** `node/router.py` — 매핑 추가
 
 ```python
 INTENT_TO_NODE: dict[str, str] = {
@@ -437,7 +437,7 @@ INTENT_TO_NODE: dict[str, str] = {
 **Step 4.** `workflow.py` — 노드/엣지 등록
 
 ```python
-from nodes.agents.agent_c import agent_c_node
+from node.domain.agent_c import agent_c_node
 
 sg.add_node("agent_c", agent_c_node)
 # conditional_edges 매핑에 "agent_c": "agent_c" 추가
@@ -473,8 +473,8 @@ AgentExecutor(
 ### 새 MCP Tool 추가
 
 ```python
-# src/workflows/v1_0/mcp/tools/translate_tool.py
-from mcp.tools.base_tool import BaseTool
+# src/workflows/v1_0/mcp/tool/translate_tool.py
+from mcp.tool.base_tool import BaseTool
 
 class TranslateTool(BaseTool):
     @property

@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 
-from nodes.agents.agent_a import agent_a_node
-from nodes.agents.agent_b import agent_b_node
-from nodes.final_response import generate_final_response
-from nodes.intent_classifier import classify_intent
-from nodes.router import route_by_intent
-from nodes.unknown_handler import handle_unknown
+from node.domain.agent_a import agent_a_node
+from node.domain.agent_b import agent_b_node
+from node.final_response import generate_final_response
+from node.intent_classifier import classify_intent
+from node.router import route_by_intent
+from node.unknown_handler import handle_unknown
 from state import GraphState
 
 

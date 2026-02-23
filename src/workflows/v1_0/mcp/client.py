@@ -5,7 +5,7 @@ from typing import Any
 
 from core.exceptions import MCPConnectionError, MCPToolError
 from core.logging import get_logger
-from mcp.tools.base_tool import BaseTool
+from mcp.tool.base_tool import BaseTool
 
 logger = get_logger(__name__)
 

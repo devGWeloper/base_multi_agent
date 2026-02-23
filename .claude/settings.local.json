@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(xargs sed:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)"
     ]
   }
 }

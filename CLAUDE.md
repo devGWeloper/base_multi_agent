@@ -9,13 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 uv sync
 
 # Run all tests
-uv run pytest src/workflows/v1_0/tests/
+uv run pytest src/workflows/v1_0/test/
 
 # Run a single test file
-uv run pytest src/workflows/v1_0/tests/unit/test_router.py
+uv run pytest src/workflows/v1_0/test/unit/test_router.py
 
 # Run a single test function
-uv run pytest src/workflows/v1_0/tests/unit/test_router.py::test_function_name
+uv run pytest src/workflows/v1_0/test/unit/test_router.py::test_function_name
 
 # Run local interactive mode
 uv run python app.py
@@ -33,7 +33,7 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 
 **Graph** (`src/workflows/v1_0/workflow.py`): Assembles and compiles the `StateGraph`. This is the GAIA platform entry point — `graph` is a module-level instance. `app.py` is for local interactive testing only.
 
-**Nodes** (`src/workflows/v1_0/nodes/`):
+**Nodes** (`src/workflows/v1_0/node/`):
 - `intent_classifier.py` — LLM classifies intent; on failure sets `state["error"]` and continues (graceful degradation to unknown_handler)
 - `router.py` — pure function mapping `state["intent"]` → node name via `INTENT_TO_NODE` dict
 - `unknown_handler.py` — distinguishes system errors (`state["error"]`) from unmatched intents
@@ -52,13 +52,13 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 
 **Add a new intent + agent:**
 1. Add value to `src/workflows/v1_0/config/intents.py` `Intent` enum
-2. Create `src/workflows/v1_0/nodes/agents/agent_c.py` — import `BaseAgent` from `nodes.base_agent`, `AgentExecutor` from `nodes.executor`
-3. Add entry to `src/workflows/v1_0/nodes/router.py` `INTENT_TO_NODE` dict
+2. Create `src/workflows/v1_0/node/domain/agent_c.py` — import `BaseAgent` from `nodes.base_agent`, `AgentExecutor` from `nodes.executor`
+3. Add entry to `src/workflows/v1_0/node/router.py` `INTENT_TO_NODE` dict
 4. Register node and edge in `src/workflows/v1_0/workflow.py`
 
 **Add a new retriever:** Inherit `BaseRetriever` in `src/workflows/v1_0/rag/`, implement `retrieve()`, inject into `AgentExecutor(retrievers=[...])`.
 
-**Add a new tool:** Inherit `BaseTool` in `src/workflows/v1_0/mcp/tools/`, implement `name`, `description`, `args_schema`, `call()`, register with `MCPClient`.
+**Add a new tool:** Inherit `BaseTool` in `src/workflows/v1_0/mcp/tool/`, implement `name`, `description`, `args_schema`, `call()`, register with `MCPClient`.
 
 ## Key Patterns
 
