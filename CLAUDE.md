@@ -9,13 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 uv sync
 
 # Run all tests
-uv run pytest tests/
+uv run pytest src/workflows/v1_0/tests/
 
 # Run a single test file
-uv run pytest tests/unit/test_router.py
+uv run pytest src/workflows/v1_0/tests/unit/test_router.py
 
 # Run a single test function
-uv run pytest tests/unit/test_router.py::test_function_name
+uv run pytest src/workflows/v1_0/tests/unit/test_router.py::test_function_name
 
 # Run local interactive mode
 uv run python main.py
@@ -29,11 +29,11 @@ This is a LangGraph-based multi-agent system. The execution flow is:
 User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Handler → Final Response
 ```
 
-**State** (`state.py`): `GraphState` TypedDict with `messages` (accumulated via `operator.add`), `intent`, `agent_output`, `context`, `metadata`, `error`.
+**State** (`src/workflows/v1_0/state.py`): `GraphState` TypedDict with `messages` (accumulated via `operator.add`), `intent`, `agent_output`, `context`, `metadata`, `error`.
 
-**Graph** (`workflow.py`): Assembles and compiles the `StateGraph`. This is the GAIA platform entry point — `graph` is a module-level instance. `main.py` is for local interactive testing only.
+**Graph** (`src/workflows/v1_0/workflow.py`): Assembles and compiles the `StateGraph`. This is the GAIA platform entry point — `graph` is a module-level instance. `main.py` is for local interactive testing only.
 
-**Nodes** (`nodes/`):
+**Nodes** (`src/workflows/v1_0/nodes/`):
 - `intent_classifier.py` — LLM classifies intent; on failure sets `state["error"]` and continues (graceful degradation to unknown_handler)
 - `router.py` — pure function mapping `state["intent"]` → node name via `INTENT_TO_NODE` dict
 - `unknown_handler.py` — distinguishes system errors (`state["error"]`) from unmatched intents
@@ -42,21 +42,21 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 
 **Agent pattern**: Each agent (`agent_a.py`, `agent_b.py`) uses lazy `_get_agent()` singleton to defer initialization. Retrievers and tools are injected into `AgentExecutor` at construction time.
 
-**RAG** (`rag/`): `BaseRetriever` → `retrieve(query) -> list[Document]`. Milvus-backed retrievers are currently stubs.
+**RAG** (`src/workflows/v1_0/rag/`): `BaseRetriever` → `retrieve(query) -> list[Document]`. Milvus-backed retrievers are currently stubs.
 
-**MCP Tools** (`mcp/`): `BaseTool` → `call(args: dict) -> dict`. `MCPClient` manages tool registration and dispatch. Tool implementations are currently stubs.
+**MCP Tools** (`src/workflows/v1_0/mcp/`): `BaseTool` → `call(args: dict) -> dict`. `MCPClient` manages tool registration and dispatch. Tool implementations are currently stubs.
 
 ## Extending the System
 
 **Add a new intent + agent:**
-1. Add value to `config/intents.py` `Intent` enum
-2. Create `nodes/agents/agent_c.py` inheriting `BaseAgent` / using `AgentExecutor`
-3. Add entry to `nodes/router.py` `INTENT_TO_NODE` dict
-4. Register node and edge in `workflow.py`
+1. Add value to `src/workflows/v1_0/config/intents.py` `Intent` enum
+2. Create `src/workflows/v1_0/nodes/agents/agent_c.py` inheriting `BaseAgent` / using `AgentExecutor`
+3. Add entry to `src/workflows/v1_0/nodes/router.py` `INTENT_TO_NODE` dict
+4. Register node and edge in `src/workflows/v1_0/workflow.py`
 
-**Add a new retriever:** Inherit `BaseRetriever` in `rag/`, implement `retrieve()`, inject into `AgentExecutor(retrievers=[...])`.
+**Add a new retriever:** Inherit `BaseRetriever` in `src/workflows/v1_0/rag/`, implement `retrieve()`, inject into `AgentExecutor(retrievers=[...])`.
 
-**Add a new tool:** Inherit `BaseTool` in `mcp/tools/`, implement `name`, `description`, `args_schema`, `call()`, register with `MCPClient`.
+**Add a new tool:** Inherit `BaseTool` in `src/workflows/v1_0/mcp/tools/`, implement `name`, `description`, `args_schema`, `call()`, register with `MCPClient`.
 
 ## Key Patterns
 

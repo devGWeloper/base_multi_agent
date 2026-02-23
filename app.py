@@ -1,6 +1,13 @@
 # 로컬 개발/테스트용 실행 진입점
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+_root = Path(__file__).parent
+sys.path.insert(0, str(_root / "src" / "workflows" / "v1_0"))
+sys.path.insert(0, str(_root))
+
 from langchain_core.messages import HumanMessage
 
 from workflow import graph

@@ -21,7 +21,8 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src/workflows/v1_0/tests"]
+pythonpath = ["src/workflows/v1_0", "."]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 
