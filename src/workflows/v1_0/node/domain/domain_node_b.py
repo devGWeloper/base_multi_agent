@@ -4,8 +4,8 @@ from __future__ import annotations
 from core.logging import get_logger, log_node_execution
 from mcp.client import MCPClient
 from mcp.tool.summary_tool import SummaryTool
-from node.base_agent import BaseAgent
-from node.executor import AgentExecutor
+from node._base_agent import BaseAgent
+from node._executor import AgentExecutor
 from prompt.agent.agent_b_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from rag.xxx_retriever import XxxRetriever
 from state import GraphState

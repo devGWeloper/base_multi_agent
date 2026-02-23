@@ -7,11 +7,11 @@ from state import GraphState
 INTENT_TO_NODE: dict[str, str] = {
     Intent.INTENT_A.value: "agent_a",
     Intent.INTENT_B.value: "agent_b",
-    Intent.UNKNOWN.value: "unknown_handler",
+    Intent.UNKNOWN.value: "default_response",
 }
 
 
 def route_by_intent(state: GraphState) -> str:
     """state의 intent 값을 보고 다음 노드 이름을 반환한다."""
     intent = state.get("intent", Intent.UNKNOWN.value)
-    return INTENT_TO_NODE.get(intent, "unknown_handler")
+    return INTENT_TO_NODE.get(intent, "default_response")

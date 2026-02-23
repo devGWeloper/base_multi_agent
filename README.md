@@ -30,7 +30,7 @@ User Input
   → Router             (intent 값 → 다음 노드 결정, conditional edge)
   ┌─→ Agent A ──┐
   ├─→ Agent B ──┤→ Final Response → END
-  └─→ Unknown  ─┘   (agent_output + context → 최종 응답 생성)
+  └─→ Default  ─┘   (agent_output + context → 최종 응답 생성)
 ```
 
 | 노드 | 역할 |
@@ -38,10 +38,10 @@ User Input
 | **Intent Classifier** | 사용자 입력을 LLM으로 분석해 `Intent` enum 값으로 분류. 실패 시 예외를 던지지 않고 `state["error"]`에 기록 후 `UNKNOWN`으로 fallback (graceful degradation) |
 | **Router** | `state["intent"]`를 보고 다음 노드 이름을 반환하는 **순수 함수**. 별도 노드가 아닌 conditional edge 함수 |
 | **Domain Agent** | intent별 처리 담당. 생성 시 RAG retriever와 MCP tool을 **선택적으로 주입**받아 `AgentExecutor`에 위임 |
-| **Unknown Handler** | `UNKNOWN` intent 또는 분류 오류 처리. `state["error"]` 유무로 시스템 오류와 단순 미매칭을 구분 |
+| **Default Response** | `UNKNOWN` intent 또는 분류 오류 처리. `state["error"]` 유무로 시스템 오류와 단순 미매칭을 구분 |
 | **Final Response** | `agent_output` + RAG context를 종합해 LLM으로 최종 응답 생성 |
 
-### Agent 내부 실행 흐름 (`executor.py`)
+### Agent 내부 실행 흐름 (`_executor.py`)
 
 ```
 Agent.run(state)
@@ -79,10 +79,10 @@ multi_agent_base/
 │       │   ├── workflow.py         ← GAIA 플랫폼 진입점 (graph 인스턴스)
 │       │   ├── state.py
 │       │   ├── config/
-│       │   ├── nodes/
-│       │   │   ├── base_agent.py      ← 이 버전의 Agent 인터페이스 (수정 금지)
-│       │   │   ├── executor.py        ← 이 버전의 실행 엔진 (수정 금지)
-│       │   │   └── agents/            ← Agent 구현체만 추가하는 곳
+│       │   ├── node/
+│       │   │   ├── _base_agent.py     ← 이 버전의 Agent 인터페이스 (수정 금지)
+│       │   │   ├── _executor.py       ← 이 버전의 실행 엔진 (수정 금지)
+│       │   │   └── domain/            ← Agent 구현체만 추가하는 곳
 │       │   ├── prompts/
 │       │   ├── rag/
 │       │   ├── mcp/
@@ -194,15 +194,15 @@ class GraphState(TypedDict):
 |------|------|------|
 | `intent_classifier.py` | `classify_intent(state)` | 사용자 입력을 LLM으로 분석해 `Intent` 값 결정. 실패 시 `state["error"]` 기록 후 `UNKNOWN` 설정 |
 | `router.py` | `route_by_intent(state)` | `state["intent"]` → 다음 노드 이름 반환. `INTENT_TO_NODE` dict로 매핑. 노드가 아닌 conditional edge 함수 |
-| `unknown_handler.py` | `handle_unknown(state)` | `UNKNOWN` intent 처리. `state["error"]` 있으면 시스템 오류 메시지, 없으면 미매칭 안내 메시지 |
+| `default_response.py` | `default_response(state)` | `UNKNOWN` intent 처리. `state["error"]` 있으면 시스템 오류 메시지, 없으면 미매칭 안내 메시지 |
 | `final_response.py` | `generate_final_response(state)` | `agent_output` + `context`를 종합해 LLM으로 사용자에게 전달할 최종 응답 생성 |
 
-#### `node/base_agent.py`, `node/executor.py` — 이 버전의 Agent 기반 코드
+#### `node/_base_agent.py`, `node/_executor.py` — 이 버전의 Agent 기반 코드
 
 | 파일 | 클래스/함수 | 역할 |
 |------|------------|------|
-| `base_agent.py` | `BaseAgent(ABC)` | **이 버전의** Agent 인터페이스 정의. `run(state) → state` 추상 메서드만 선언. 버전 간 인터페이스가 달라질 수 있으므로 `src/core/`가 아닌 버전 폴더에 위치 |
-| `executor.py` | `AgentExecutor` | **이 버전의** 공통 실행 엔진. 생성 시 retriever 목록, MCP client, tool 이름 목록을 주입받아 `execute(state)`에서 RAG → Tool → LLM 순서로 실행. 마찬가지로 버전 폴더에 위치 |
+| `_base_agent.py` | `BaseAgent(ABC)` | **이 버전의** Agent 인터페이스 정의. `run(state) → state` 추상 메서드만 선언. 버전 간 인터페이스가 달라질 수 있으므로 `src/core/`가 아닌 버전 폴더에 위치 |
+| `_executor.py` | `AgentExecutor` | **이 버전의** 공통 실행 엔진. 생성 시 retriever 목록, MCP client, tool 이름 목록을 주입받아 `execute(state)`에서 RAG → Tool → LLM 순서로 실행. 마찬가지로 버전 폴더에 위치 |
 
 #### `node/domain/` — 도메인 Agent 구현체만
 
@@ -211,8 +211,8 @@ class GraphState(TypedDict):
 
 | 파일 | 클래스/함수 | 역할 |
 |------|------------|------|
-| `agent_a.py` | `AgentA` / `agent_a_node` | Domain Agent A 구현체. `_get_agent()` lazy singleton 패턴으로 최초 호출 시 1회만 초기화. `agent_a_node`가 실제 LangGraph 노드 함수 |
-| `agent_b.py` | `AgentB` / `agent_b_node` | Domain Agent B (구조 동일) |
+| `domain_node_a.py` | `AgentA` / `agent_a_node` | Domain Agent A 구현체. `_get_agent()` lazy singleton 패턴으로 최초 호출 시 1회만 초기화. `agent_a_node`가 실제 LangGraph 노드 함수 |
+| `domain_node_b.py` | `AgentB` / `agent_b_node` | Domain Agent B (구조 동일) |
 
 #### `prompt/` — LLM 프롬프트 상수
 
@@ -265,8 +265,8 @@ class GraphState(TypedDict):
 | `src/core/exceptions.py` | 예외 계층은 고정. 새 예외가 필요하면 기존 클래스를 상속 |
 | `src/core/llm.py` | LLM 클라이언트 관리 로직. 모델 변경은 `.env`로 |
 | `src/core/logging.py` | 로깅 인프라. 모든 노드에서 동일하게 사용 |
-| `src/workflows/v1_0/node/base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
-| `src/workflows/v1_0/node/executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
+| `src/workflows/v1_0/node/_base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
+| `src/workflows/v1_0/node/_executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
 | `src/workflows/v1_0/rag/base_retriever.py` | Retriever 인터페이스. 변경 시 모든 Retriever에 영향 |
 | `src/workflows/v1_0/mcp/tool/base_tool.py` | Tool 인터페이스. 변경 시 모든 Tool에 영향 |
 | `src/workflows/v1_0/mcp/client.py` | Tool 등록/호출 관리. 기능 추가가 아닌 한 수정 불필요 |
@@ -311,8 +311,8 @@ class GraphState(TypedDict):
 
 | 파일 | 할 일 |
 |------|-------|
-| `src/workflows/v1_0/node/domain/agent_a.py` | `AgentExecutor`에 Agent A가 사용할 retriever/tool 조합 주입 |
-| `src/workflows/v1_0/node/domain/agent_b.py` | `AgentExecutor`에 Agent B가 사용할 retriever/tool 조합 주입 |
+| `src/workflows/v1_0/node/domain/domain_node_a.py` | `AgentExecutor`에 Agent A가 사용할 retriever/tool 조합 주입 |
+| `src/workflows/v1_0/node/domain/domain_node_b.py` | `AgentExecutor`에 Agent B가 사용할 retriever/tool 조합 주입 |
 
 ---
 
@@ -333,7 +333,7 @@ class GraphState(TypedDict):
 ```python
 # 패키지 전체 경로가 아닌 flat import
 from core.exceptions import AgentExecutionError    # src/core/exceptions.py
-from node.executor import AgentExecutor            # src/workflows/v1_0/node/executor.py
+from node._executor import AgentExecutor           # src/workflows/v1_0/node/_executor.py
 from config.intents import Intent                  # src/workflows/v1_0/config/intents.py
 ```
 
@@ -389,11 +389,11 @@ class Intent(str, Enum):
     UNKNOWN  = "UNKNOWN"
 ```
 
-**Step 2.** `node/domain/agent_c.py` 생성
+**Step 2.** `node/domain/domain_node_c.py` 생성
 
 ```python
-from node.base_agent import BaseAgent
-from node.executor import AgentExecutor
+from node._base_agent import BaseAgent
+from node._executor import AgentExecutor
 from core.logging import log_node_execution
 from state import GraphState
 
@@ -430,14 +430,14 @@ INTENT_TO_NODE: dict[str, str] = {
     Intent.INTENT_A.value: "agent_a",
     Intent.INTENT_B.value: "agent_b",
     Intent.INTENT_C.value: "agent_c",   # 추가
-    Intent.UNKNOWN.value:  "unknown_handler",
+    Intent.UNKNOWN.value:  "default_response",
 }
 ```
 
 **Step 4.** `workflow.py` — 노드/엣지 등록
 
 ```python
-from node.domain.agent_c import agent_c_node
+from node.domain.domain_node_c import agent_c_node
 
 sg.add_node("agent_c", agent_c_node)
 # conditional_edges 매핑에 "agent_c": "agent_c" 추가
@@ -527,4 +527,4 @@ cp -r src/workflows/v1_0 src/workflows/v2_0
 | **예외** | `src/core/exceptions.py` | 모든 커스텀 예외는 `MultiAgentBaseError` 상속. `cause`와 `context` 필드로 디버깅 정보 전달 |
 | **LLM 관리** | `src/core/llm.py` | `get_llm()`은 `@lru_cache` 싱글턴으로 중복 생성 방지. 모델 설정은 `.env`에서 |
 | **설정** | `config/settings.py` | `get_settings()`도 `@lru_cache` 싱글턴. `.env` 또는 환경변수에서 읽음 |
-| **Error as State** | `intent_classifier.py` | 분류 실패 등 내부 오류는 예외로 전파하지 않고 `state["error"]`에 기록. 그래프가 `unknown_handler`로 graceful degradation |
+| **Error as State** | `intent_classifier.py` | 분류 실패 등 내부 오류는 예외로 전파하지 않고 `state["error"]`에 기록. 그래프가 `default_response`로 graceful degradation |
