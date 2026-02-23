@@ -4,8 +4,8 @@ from __future__ import annotations
 from config.intents import Intent
 from core.exceptions import AgentExecutionError
 from core.logging import get_logger, log_node_execution
-from nodes.agents.base_agent import BaseAgent
-from nodes.agents.executor import AgentExecutor
+from nodes.base_agent import BaseAgent
+from nodes.executor import AgentExecutor
 from prompts.intent_classifier_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from state import GraphState
 

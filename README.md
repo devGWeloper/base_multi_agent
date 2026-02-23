@@ -80,7 +80,9 @@ multi_agent_base/
 │       │   ├── state.py
 │       │   ├── config/
 │       │   ├── nodes/
-│       │   │   └── agents/
+│       │   │   ├── base_agent.py      ← 이 버전의 Agent 인터페이스 (수정 금지)
+│       │   │   ├── executor.py        ← 이 버전의 실행 엔진 (수정 금지)
+│       │   │   └── agents/            ← Agent 구현체만 추가하는 곳
 │       │   ├── prompts/
 │       │   ├── rag/
 │       │   ├── mcp/
@@ -195,12 +197,20 @@ class GraphState(TypedDict):
 | `unknown_handler.py` | `handle_unknown(state)` | `UNKNOWN` intent 처리. `state["error"]` 있으면 시스템 오류 메시지, 없으면 미매칭 안내 메시지 |
 | `final_response.py` | `generate_final_response(state)` | `agent_output` + `context`를 종합해 LLM으로 사용자에게 전달할 최종 응답 생성 |
 
-#### `nodes/agents/` — Agent 레이어
+#### `nodes/base_agent.py`, `nodes/executor.py` — 이 버전의 Agent 기반 코드
 
 | 파일 | 클래스/함수 | 역할 |
 |------|------------|------|
-| `base_agent.py` | `BaseAgent(ABC)` | Agent 인터페이스 정의. `run(state) → state` 추상 메서드만 선언 |
-| `executor.py` | `AgentExecutor` | **공통 실행 엔진**. 생성 시 retriever 목록, MCP client, tool 이름 목록을 주입받아 `execute(state)`에서 RAG → Tool → LLM 순서로 실행 |
+| `base_agent.py` | `BaseAgent(ABC)` | **이 버전의** Agent 인터페이스 정의. `run(state) → state` 추상 메서드만 선언. 버전 간 인터페이스가 달라질 수 있으므로 `src/core/`가 아닌 버전 폴더에 위치 |
+| `executor.py` | `AgentExecutor` | **이 버전의** 공통 실행 엔진. 생성 시 retriever 목록, MCP client, tool 이름 목록을 주입받아 `execute(state)`에서 RAG → Tool → LLM 순서로 실행. 마찬가지로 버전 폴더에 위치 |
+
+#### `nodes/agents/` — 도메인 Agent 구현체만
+
+이 폴더의 역할은 단 하나: **도메인별 Agent 파일을 추가하는 곳**.
+`base_agent.py`와 `executor.py`는 한 레벨 위(`nodes/`)에 있으므로, 이 폴더에는 비즈니스 로직 Agent만 존재한다.
+
+| 파일 | 클래스/함수 | 역할 |
+|------|------------|------|
 | `agent_a.py` | `AgentA` / `agent_a_node` | Domain Agent A 구현체. `_get_agent()` lazy singleton 패턴으로 최초 호출 시 1회만 초기화. `agent_a_node`가 실제 LangGraph 노드 함수 |
 | `agent_b.py` | `AgentB` / `agent_b_node` | Domain Agent B (구조 동일) |
 
@@ -255,8 +265,8 @@ class GraphState(TypedDict):
 | `src/core/exceptions.py` | 예외 계층은 고정. 새 예외가 필요하면 기존 클래스를 상속 |
 | `src/core/llm.py` | LLM 클라이언트 관리 로직. 모델 변경은 `.env`로 |
 | `src/core/logging.py` | 로깅 인프라. 모든 노드에서 동일하게 사용 |
-| `src/workflows/v1_0/nodes/agents/base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
-| `src/workflows/v1_0/nodes/agents/executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
+| `src/workflows/v1_0/nodes/base_agent.py` | Agent 인터페이스 정의. 변경 시 모든 Agent에 영향 |
+| `src/workflows/v1_0/nodes/executor.py` | 공통 실행 엔진. ReAct 등으로 교체할 때만 수정 (선택적 고도화) |
 | `src/workflows/v1_0/rag/base_retriever.py` | Retriever 인터페이스. 변경 시 모든 Retriever에 영향 |
 | `src/workflows/v1_0/mcp/tools/base_tool.py` | Tool 인터페이스. 변경 시 모든 Tool에 영향 |
 | `src/workflows/v1_0/mcp/client.py` | Tool 등록/호출 관리. 기능 추가가 아닌 한 수정 불필요 |
@@ -323,7 +333,7 @@ class GraphState(TypedDict):
 ```python
 # 패키지 전체 경로가 아닌 flat import
 from core.exceptions import AgentExecutionError    # src/core/exceptions.py
-from nodes.agents.executor import AgentExecutor    # src/workflows/v1_0/nodes/agents/executor.py
+from nodes.executor import AgentExecutor            # src/workflows/v1_0/nodes/executor.py
 from config.intents import Intent                  # src/workflows/v1_0/config/intents.py
 ```
 
@@ -382,8 +392,8 @@ class Intent(str, Enum):
 **Step 2.** `nodes/agents/agent_c.py` 생성
 
 ```python
-from nodes.agents.base_agent import BaseAgent
-from nodes.agents.executor import AgentExecutor
+from nodes.base_agent import BaseAgent
+from nodes.executor import AgentExecutor
 from core.logging import log_node_execution
 from state import GraphState
 

@@ -4,8 +4,8 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage
 
 from core.logging import log_node_execution
-from nodes.agents.base_agent import BaseAgent
-from nodes.agents.executor import AgentExecutor
+from nodes.base_agent import BaseAgent
+from nodes.executor import AgentExecutor
 from prompts.final_response_prompt import FALLBACK_MESSAGE, SYSTEM_PROMPT, USER_PROMPT
 from state import GraphState
 

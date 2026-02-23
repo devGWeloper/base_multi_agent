@@ -38,7 +38,9 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 - `router.py` — pure function mapping `state["intent"]` → node name via `INTENT_TO_NODE` dict
 - `unknown_handler.py` — distinguishes system errors (`state["error"]`) from unmatched intents
 - `final_response.py` — combines `agent_output` + `context`, generates final LLM response
-- `agents/executor.py` — core pipeline: RAG retrieval → MCP tool calls → LLM inference (all sequential)
+- `base_agent.py` — this version's Agent interface (`BaseAgent` ABC). Kept in version folder, not `src/core/`, because the interface may change across versions
+- `executor.py` — this version's execution pipeline: RAG retrieval → MCP tool calls → LLM inference (all sequential). Also version-scoped for the same reason
+- `agents/` — **only domain Agent implementations** (agent_a.py, agent_b.py, …). Add new agents here.
 
 **Agent pattern**: Each agent (`agent_a.py`, `agent_b.py`) uses lazy `_get_agent()` singleton to defer initialization. Retrievers and tools are injected into `AgentExecutor` at construction time.
 
@@ -50,7 +52,7 @@ User Input → Intent Classifier → Router → Agent A / Agent B / Unknown Hand
 
 **Add a new intent + agent:**
 1. Add value to `src/workflows/v1_0/config/intents.py` `Intent` enum
-2. Create `src/workflows/v1_0/nodes/agents/agent_c.py` inheriting `BaseAgent` / using `AgentExecutor`
+2. Create `src/workflows/v1_0/nodes/agents/agent_c.py` — import `BaseAgent` from `nodes.base_agent`, `AgentExecutor` from `nodes.executor`
 3. Add entry to `src/workflows/v1_0/nodes/router.py` `INTENT_TO_NODE` dict
 4. Register node and edge in `src/workflows/v1_0/workflow.py`
 
