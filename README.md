@@ -214,7 +214,7 @@ class GraphState(TypedDict):
 | 파일 | 내용 |
 |------|------|
 | `intent_classifier_prompt.py` | Intent 분류용 system/user 프롬프트 템플릿 |
-| `unknown_handler_prompt.py` | Unknown 처리용 프롬프트 |
+| `default_response_prompt.py` | Default Response 노드용 프롬프트 |
 | `final_response_prompt.py` | 최종 응답 생성용 프롬프트 |
 | `agent/agent_a_prompt.py` | Agent A 전용 system/user 프롬프트 (`{context}`, `{user_input}` 변수 포함) |
 | `agent/agent_b_prompt.py` | Agent B 전용 프롬프트 |

@@ -7,7 +7,7 @@ from config.intents import Intent
 from core.logging import get_logger, log_node_execution
 from node._base_agent import BaseAgent
 from node._executor import AgentExecutor
-from prompt.unknown_handler_prompt import ERROR_MESSAGE, SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from prompt.default_response_prompt import ERROR_MESSAGE, SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from state import GraphState
 
 logger = get_logger(__name__)
