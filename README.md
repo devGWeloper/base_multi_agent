@@ -216,8 +216,8 @@ class GraphState(TypedDict):
 | `intent_classifier_prompt.py` | Intent 분류용 system/user 프롬프트 템플릿 |
 | `default_response_prompt.py` | Default Response 노드용 프롬프트 |
 | `final_response_prompt.py` | 최종 응답 생성용 프롬프트 |
-| `agent/agent_a_prompt.py` | Agent A 전용 system/user 프롬프트 (`{context}`, `{user_input}` 변수 포함) |
-| `agent/agent_b_prompt.py` | Agent B 전용 프롬프트 |
+| `domain/domain_node_a_prompt.py` | Domain Node A 전용 system/user 프롬프트 (`{context}`, `{user_input}` 변수 포함) |
+| `domain/domain_node_b_prompt.py` | Domain Node B 전용 프롬프트 |
 
 #### `rag/` — RAG 검색 레이어
 
@@ -284,8 +284,8 @@ class GraphState(TypedDict):
 | 파일 | 할 일 |
 |------|-------|
 | `src/workflows/v1_0/prompt/intent_classifier_prompt.py` | 도메인 컨텍스트를 반영한 분류 프롬프트 작성 |
-| `src/workflows/v1_0/prompt/agent/agent_a_prompt.py` | Agent A의 역할과 출력 형식 정의 |
-| `src/workflows/v1_0/prompt/agent/agent_b_prompt.py` | Agent B의 역할과 출력 형식 정의 |
+| `src/workflows/v1_0/prompt/domain/domain_node_a_prompt.py` | Domain Node A의 역할과 출력 형식 정의 |
+| `src/workflows/v1_0/prompt/domain/domain_node_b_prompt.py` | Domain Node B의 역할과 출력 형식 정의 |
 | `src/workflows/v1_0/prompt/final_response_prompt.py` | 최종 응답 톤·형식 정의 |
 
 #### 3단계: RAG 구현

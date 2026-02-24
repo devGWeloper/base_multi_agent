@@ -1,4 +1,4 @@
-# Agent B 전용 프롬프트 템플릿
+# Domain Node B 전용 프롬프트 템플릿
 from __future__ import annotations
 
 SYSTEM_PROMPT = """\

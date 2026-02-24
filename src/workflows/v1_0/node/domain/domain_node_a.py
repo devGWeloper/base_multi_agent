@@ -6,7 +6,7 @@ from mcp.client import MCPClient
 from mcp.tool.search_tool import SearchTool
 from node._base_agent import BaseAgent
 from node._executor import AgentExecutor
-from prompt.agent.agent_a_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from prompt.domain.domain_node_a_prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 from rag.iflow_retriever import IflowRetriever
 from state import GraphState
 
